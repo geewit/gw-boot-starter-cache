@@ -5,6 +5,7 @@ import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.cache.support.AbstractValueAdaptingCache;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Stack;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,6 +48,9 @@ public class CompositeCache extends AbstractValueAdaptingCache {
     public Object lookup(Object key) {
         Stack<Cache> noCacheStack = new Stack<>();
         for(Cache cache : this.caches) {
+            if(cache == null) {
+                continue;
+            }
             if(cache instanceof AbstractValueAdaptingCache) {
                 Object value = ((AbstractValueAdaptingCache)cache).lookup(key);
                 if(value != null) {
@@ -75,35 +79,23 @@ public class CompositeCache extends AbstractValueAdaptingCache {
 
     @Override
     public <T> T get(Object key, Callable<T> valueLoader) {
-        for(Cache cache : this.caches) {
-            T value = cache.get(key, valueLoader);
-            if(value != null) {
-                return value;
-            }
-        }
-        return null;
+        return this.caches.stream().filter(Objects::nonNull).map(cache -> cache.get(key, valueLoader)).filter(Objects::nonNull).findFirst().orElse(null);
     }
 
     @Override
     public void put(Object key, Object value) {
         if(value != null) {
-            for(Cache cache : this.caches) {
-                cache.put(key, value);
-            }
+            this.caches.stream().filter(Objects::nonNull).forEachOrdered(cache -> cache.put(key, value));
         }
     }
 
     @Override
     public void evict(Object key) {
-        for(Cache cache : this.caches) {
-            cache.evict(key);
-        }
+        this.caches.stream().filter(Objects::nonNull).forEachOrdered(cache -> cache.evict(key));
     }
 
     @Override
     public void clear() {
-        for(Cache cache : this.caches) {
-            cache.clear();
-        }
+        this.caches.stream().filter(Objects::nonNull).forEachOrdered(Cache::clear);
     }
 }
