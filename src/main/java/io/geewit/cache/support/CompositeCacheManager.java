@@ -81,7 +81,10 @@ public class CompositeCacheManager implements CacheManager, InitializingBean {
     public CompositeCache getCache(String name) {
         List<Cache> caches = new ArrayList<>();
         for (CacheManager manager : this.cacheManagers) {
-            caches.add(manager.getCache(name));
+            Cache cache = manager.getCache(name);
+            if(cache != null) {
+                caches.add(manager.getCache(name));
+            }
         }
         CompositeCache compositeCache = new CompositeCache(name, caches, false);
         return compositeCache;
