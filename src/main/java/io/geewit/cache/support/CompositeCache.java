@@ -5,6 +5,7 @@ import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.cache.support.AbstractValueAdaptingCache;
 
 import java.util.List;
+import java.util.Stack;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,11 +45,18 @@ public class CompositeCache extends AbstractValueAdaptingCache {
 
     @Override
     public Object lookup(Object key) {
+        Stack<Cache> noCacheStack = new Stack<>();
         for(Cache cache : this.caches) {
             if(cache instanceof AbstractValueAdaptingCache) {
                 Object value = ((AbstractValueAdaptingCache)cache).lookup(key);
                 if(value != null) {
+                    while (!noCacheStack.isEmpty()) {
+                        Cache noCache = noCacheStack.pop();
+                        noCache.put(key, value);
+                    }
                     return value;
+                } else {
+                    noCacheStack.push(cache);
                 }
             }
         }
