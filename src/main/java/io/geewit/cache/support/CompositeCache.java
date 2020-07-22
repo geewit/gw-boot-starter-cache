@@ -86,8 +86,10 @@ public class CompositeCache extends AbstractValueAdaptingCache {
 
     @Override
     public void put(Object key, Object value) {
-        for(Cache cache : this.caches) {
-            cache.put(key, value);
+        if(value != null) {
+            for(Cache cache : this.caches) {
+                cache.put(key, value);
+            }
         }
     }
 
