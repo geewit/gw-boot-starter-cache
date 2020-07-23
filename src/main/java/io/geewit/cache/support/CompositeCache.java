@@ -56,7 +56,12 @@ public class CompositeCache extends AbstractValueAdaptingCache {
                 if(value != null) {
                     while (!noCacheStack.isEmpty()) {
                         Cache noCache = noCacheStack.pop();
-                        noCache.put(key, value);
+                        if(noCache != null) {
+                            try {
+                                noCache.put(key, value);
+                            } catch (Exception ignored) {
+                            }
+                        }
                     }
                     return value;
                 } else {
@@ -79,23 +84,49 @@ public class CompositeCache extends AbstractValueAdaptingCache {
 
     @Override
     public <T> T get(Object key, Callable<T> valueLoader) {
-        return this.caches.stream().filter(Objects::nonNull).map(cache -> cache.get(key, valueLoader)).filter(Objects::nonNull).findFirst().orElse(null);
+        for (Cache cache : this.caches) {
+            if (cache != null) {
+                try {
+                    T value = cache.get(key, valueLoader);
+                    if (value != null) {
+                        return value;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return null;
     }
 
     @Override
     public void put(Object key, Object value) {
         if(value != null) {
-            this.caches.stream().filter(Objects::nonNull).forEachOrdered(cache -> cache.put(key, value));
+            this.caches.stream().filter(Objects::nonNull).forEachOrdered(cache -> {
+                try {
+                    cache.put(key, value);
+                } catch (Exception ignored) {
+                }
+            });
         }
     }
 
     @Override
     public void evict(Object key) {
-        this.caches.stream().filter(Objects::nonNull).forEachOrdered(cache -> cache.evict(key));
+        this.caches.stream().filter(Objects::nonNull).forEachOrdered(cache -> {
+            try {
+                cache.evict(key);
+            } catch (Exception ignored) {
+            }
+        });
     }
 
     @Override
     public void clear() {
-        this.caches.stream().filter(Objects::nonNull).forEachOrdered(Cache::clear);
+        this.caches.stream().filter(Objects::nonNull).forEachOrdered(cache -> {
+            try {
+                cache.clear();
+            } catch (Exception ignored) {
+            }
+        });
     }
 }
